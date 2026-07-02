@@ -4,21 +4,13 @@ import { fileURLToPath } from "node:url";
 import archiver from "archiver";
 import {
   gerarLandingPageSchema,
+  slugify,
   type GerarLandingPageInput,
   type GerarLandingPageResult,
 } from "@danlimadev/contracts";
 import { LANDING_PAGE_MODELS } from "./models";
 
 const TEMPLATES_DIR = join(fileURLToPath(new URL(".", import.meta.url)), "templates");
-
-function slugify(marca: string): string {
-  return marca
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
 
 function applyTokens(content: string, tokens: Record<string, string>): string {
   return Object.entries(tokens).reduce(
