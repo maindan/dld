@@ -1,6 +1,6 @@
 {
-  "id": "092a2ba8-9d48-4ec8-9c49-ec67ed1ce1f9",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "38434b0a-23a9-4d2d-b313-f8ee1ddc2f44",
+  "prevId": "092a2ba8-9d48-4ec8-9c49-ec67ed1ce1f9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -97,15 +97,15 @@
         "contratos_freela_id_freelas_id_fk": {
           "name": "contratos_freela_id_freelas_id_fk",
           "tableFrom": "contratos",
-          "tableTo": "freelas",
           "columnsFrom": [
             "freela_id"
           ],
+          "tableTo": "freelas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -199,10 +199,10 @@
       "uniqueConstraints": {
         "freelas_chave_crono_unique": {
           "name": "freelas_chave_crono_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "chave_crono"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -251,15 +251,15 @@
         "observacoes_freela_id_freelas_id_fk": {
           "name": "observacoes_freela_id_freelas_id_fk",
           "tableFrom": "observacoes",
-          "tableTo": "freelas",
           "columnsFrom": [
             "freela_id"
           ],
+          "tableTo": "freelas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -317,15 +317,15 @@
         "reunioes_freela_id_freelas_id_fk": {
           "name": "reunioes_freela_id_freelas_id_fk",
           "tableFrom": "reunioes",
-          "tableTo": "freelas",
           "columnsFrom": [
             "freela_id"
           ],
+          "tableTo": "freelas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -397,15 +397,15 @@
         "orcamento_itens_orcamento_id_orcamentos_id_fk": {
           "name": "orcamento_itens_orcamento_id_orcamentos_id_fk",
           "tableFrom": "orcamento_itens",
-          "tableTo": "orcamentos",
           "columnsFrom": [
             "orcamento_id"
           ],
+          "tableTo": "orcamentos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -437,15 +437,15 @@
           "primaryKey": false,
           "notNull": true,
           "identity": {
-            "type": "always",
             "name": "orcamentos_numero_seq",
-            "schema": "public",
             "increment": "1",
-            "startWith": "1",
             "minValue": "1",
             "maxValue": "2147483647",
+            "startWith": "1",
             "cache": "1",
-            "cycle": false
+            "cycle": false,
+            "schema": "public",
+            "type": "always"
           }
         },
         "titulo": {
@@ -520,25 +520,25 @@
         "orcamentos_freela_id_freelas_id_fk": {
           "name": "orcamentos_freela_id_freelas_id_fk",
           "tableFrom": "orcamentos",
-          "tableTo": "freelas",
           "columnsFrom": [
             "freela_id"
           ],
+          "tableTo": "freelas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "orcamentos_chave_unique": {
           "name": "orcamentos_chave_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "chave"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -567,28 +567,28 @@
         "meta_recursos_meta_id_metas_id_fk": {
           "name": "meta_recursos_meta_id_metas_id_fk",
           "tableFrom": "meta_recursos",
-          "tableTo": "metas",
           "columnsFrom": [
             "meta_id"
           ],
+          "tableTo": "metas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "meta_recursos_orcamento_id_orcamentos_id_fk": {
           "name": "meta_recursos_orcamento_id_orcamentos_id_fk",
           "tableFrom": "meta_recursos",
-          "tableTo": "orcamentos",
           "columnsFrom": [
             "orcamento_id"
           ],
+          "tableTo": "orcamentos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {
@@ -747,15 +747,15 @@
         "tasks_pessoais_projeto_id_projetos_pessoais_id_fk": {
           "name": "tasks_pessoais_projeto_id_projetos_pessoais_id_fk",
           "tableFrom": "tasks_pessoais",
-          "tableTo": "projetos_pessoais",
           "columnsFrom": [
             "projeto_id"
           ],
+          "tableTo": "projetos_pessoais",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -836,10 +836,10 @@
       "uniqueConstraints": {
         "posts_slug_unique": {
           "name": "posts_slug_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -950,15 +950,15 @@
         "expediente_pausas_expediente_id_expedientes_id_fk": {
           "name": "expediente_pausas_expediente_id_expedientes_id_fk",
           "tableFrom": "expediente_pausas",
-          "tableTo": "expedientes",
           "columnsFrom": [
             "expediente_id"
           ],
+          "tableTo": "expedientes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1103,15 +1103,15 @@
         "landing_pages_freela_id_freelas_id_fk": {
           "name": "landing_pages_freela_id_freelas_id_fk",
           "tableFrom": "landing_pages",
-          "tableTo": "freelas",
           "columnsFrom": [
             "freela_id"
           ],
+          "tableTo": "freelas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1178,10 +1178,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
