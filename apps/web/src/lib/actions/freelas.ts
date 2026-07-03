@@ -54,10 +54,12 @@ export async function enviarOrcamentoAction(freelaId: string, orcamentoId: strin
 
 export async function registrarPagamentoAction(freelaId: string, orcamentoId: string, valor: number) {
   if (!(valor > 0)) return;
-  await registrarPagamento(orcamentoId, valor);
+  const chaves = await registrarPagamento(orcamentoId, valor);
   revalidatePath(`/freelas/${freelaId}`);
   revalidatePath("/inicio");
   revalidatePath("/metas");
+  if (chaves?.chave) revalidatePath(`/orc/${chaves.chave}`);
+  if (chaves?.chaveCrono) revalidatePath(`/cronograma/${chaves.chaveCrono}`);
 }
 
 export async function createOrcamentoItemAction(freelaId: string, orcamentoId: string, formData: FormData) {

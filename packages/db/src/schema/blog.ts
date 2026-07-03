@@ -9,6 +9,8 @@ export const posts = pgTable("posts", {
   slug: text("slug").notNull().unique(),
   resumo: text("resumo").notNull().default(""),
   corpo: text("corpo").notNull().default(""),
+  /** Public URL in Supabase Storage (bucket "uploads"). */
+  capaUrl: text("capa_url"),
   status: postStatusEnum("status").notNull().default("rascunho"),
   publicadoEm: timestamp("publicado_em", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

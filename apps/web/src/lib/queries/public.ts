@@ -1,5 +1,6 @@
 import { db, orcamentos, orcamentoItens, freelas } from "@danlimadev/db";
-import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { STATUS_ORCAMENTO_LIBERA_CRONOGRAMA } from "@/lib/cronograma-rules";
 
 export interface OrcamentoPublico {
   id: string;
@@ -78,7 +79,12 @@ export async function getCronogramaPorChave(chaveCrono: string): Promise<Cronogr
   const orcamentosDoFreela = await db
     .select({ id: orcamentos.id, titulo: orcamentos.titulo })
     .from(orcamentos)
-    .where(and(eq(orcamentos.freelaId, freela.id), ne(orcamentos.status, "rascunho")));
+    .where(
+      and(
+        eq(orcamentos.freelaId, freela.id),
+        inArray(orcamentos.status, [...STATUS_ORCAMENTO_LIBERA_CRONOGRAMA]),
+      ),
+    );
 
   const orcamentoIds = orcamentosDoFreela.map((o) => o.id);
   const titulos = new Map(orcamentosDoFreela.map((o) => [o.id, o.titulo]));

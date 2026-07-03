@@ -201,13 +201,16 @@ export async function enviarOrcamento(id: string) {
 
 export async function registrarPagamento(id: string, incremento: number) {
   const [orcamento] = await db.select().from(orcamentos).where(eq(orcamentos.id, id));
-  if (!orcamento) return;
+  if (!orcamento) return null;
   const novoPago = Math.min(Number(orcamento.valor), Number(orcamento.pago) + incremento);
   const status = novoPago >= Number(orcamento.valor) ? "pago_total" : "pago_parcial";
   await db
     .update(orcamentos)
     .set({ pago: String(novoPago), status, updatedAt: new Date() })
     .where(eq(orcamentos.id, id));
+
+  const [freela] = await db.select().from(freelas).where(eq(freelas.id, orcamento.freelaId));
+  return { chave: orcamento.chave, chaveCrono: freela?.chaveCrono ?? null };
 }
 
 export async function createOrcamentoItem(input: {

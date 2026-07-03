@@ -8,6 +8,12 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const contratoStatusEnum = pgEnum("contrato_status", ["pendente", "assinado"]);
+export const contratoModoEnum = pgEnum("contrato_modo", ["modelo", "anexo"]);
+export const contratoModeloEnum = pgEnum("contrato_modelo_tipo", [
+  "prestacao",
+  "confidencialidade",
+  "manutencao",
+]);
 
 export const freelas = pgTable("freelas", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -53,8 +59,11 @@ export const contratos = pgTable("contratos", {
   titulo: text("titulo").notNull(),
   tipo: text("tipo").notNull(),
   status: contratoStatusEnum("status").notNull().default("pendente"),
+  modo: contratoModoEnum("modo").notNull().default("modelo"),
+  /** Which predefined template was used, when modo = "modelo". */
+  modeloTipo: contratoModeloEnum("modelo_tipo"),
   data: date("data").notNull(),
-  /** Path in Supabase Storage when the contract was attached as a PDF instead of generated from a model. */
+  /** Public URL in Supabase Storage (bucket "uploads") when the contract was attached as a PDF instead of generated from a model. */
   arquivoPath: text("arquivo_path"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
