@@ -5,6 +5,7 @@ import {
   createMeta,
   deleteMeta,
   linkOrcamentoToMeta,
+  linkOrcamentosToMeta,
   unlinkOrcamentoFromMeta,
 } from "@/lib/queries/metas";
 
@@ -25,6 +26,13 @@ export async function deleteMetaAction(id: string) {
 
 export async function linkOrcamentoAction(metaId: string, orcamentoId: string) {
   await linkOrcamentoToMeta(metaId, orcamentoId);
+  revalidatePath("/metas");
+  revalidatePath("/inicio");
+}
+
+/** Aplica de uma vez todos os vínculos marcados no modal "Vincular orçamentos". */
+export async function linkOrcamentosAction(metaId: string, orcamentoIds: string[]) {
+  await linkOrcamentosToMeta(metaId, orcamentoIds);
   revalidatePath("/metas");
   revalidatePath("/inicio");
 }

@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora, JetBrains_Mono } from "next/font/google";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const sora = Sora({
@@ -17,6 +18,19 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "danlimadev",
   description: "Sistema de gerenciamento de freelas",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "danlimadev",
+  },
+  icons: {
+    apple: "/apple-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0e1116",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -29,7 +43,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`dark ${sora.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex h-dvh flex-col overflow-hidden">
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }

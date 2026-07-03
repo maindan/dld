@@ -23,6 +23,20 @@ export interface TaskItem {
 export interface ProjetoPessoal {
   id: string;
   nome: string;
+  desc: string;
+  planejamento: string;
+  stacks: string[];
+  nTasks: number;
+}
+
+/** A freela that currently has an orçamento able to receive ad-hoc deliverable items. */
+export interface FreelaTarget {
+  id: string;
+  nome: string;
+  tipo: string;
+  cor: string;
+  /** Orçamento chosen to receive items created from the Tasks screen: the most recent non-recusado one, else the most recent overall. */
+  orcamentoId: string;
 }
 
 export interface TasksOverview {
@@ -32,18 +46,20 @@ export interface TasksOverview {
   semPrazo: TaskItem[];
   concluidas: TaskItem[];
   projetos: ProjetoPessoal[];
+  freelaTargets: FreelaTarget[];
 }
 
 export async function getTasksOverview(): Promise<TasksOverview> {
   const hoje = new Date().toISOString().slice(0, 10);
 
-  const [pessoais, itens, projetos] = await Promise.all([
+  const [pessoais, itens, projetosRows, freelasRows, orcamentosRows] = await Promise.all([
     db
       .select({
         id: tasksPessoais.id,
         titulo: tasksPessoais.titulo,
         prazo: tasksPessoais.prazo,
         done: tasksPessoais.done,
+        projetoId: tasksPessoais.projetoId,
         projetoNome: projetosPessoais.nome,
         createdAt: tasksPessoais.createdAt,
       })
@@ -62,7 +78,15 @@ export async function getTasksOverview(): Promise<TasksOverview> {
       .from(orcamentoItens)
       .innerJoin(orcamentos, eq(orcamentoItens.orcamentoId, orcamentos.id))
       .innerJoin(freelas, eq(orcamentos.freelaId, freelas.id)),
-    db.select({ id: projetosPessoais.id, nome: projetosPessoais.nome }).from(projetosPessoais),
+    db.select().from(projetosPessoais).orderBy(desc(projetosPessoais.createdAt)),
+    db
+      .select({ id: freelas.id, nome: freelas.nome, tipo: freelas.tipo, cor: freelas.cor })
+      .from(freelas)
+      .orderBy(desc(freelas.createdAt)),
+    db
+      .select({ id: orcamentos.id, freelaId: orcamentos.freelaId, status: orcamentos.status })
+      .from(orcamentos)
+      .orderBy(desc(orcamentos.createdAt)),
   ]);
 
   const all: TaskItem[] = [
@@ -89,9 +113,40 @@ export async function getTasksOverview(): Promise<TasksOverview> {
   ];
 
   const pendentes = all.filter((t) => !t.done);
-  const concluidas = all
-    .filter((t) => t.done)
-    .slice(0, 20);
+  const concluidas = all.filter((t) => t.done).slice(0, 20);
+
+  const nTasksPorProjeto = new Map<string, number>();
+  for (const t of pessoais) {
+    if (!t.projetoId) continue;
+    nTasksPorProjeto.set(t.projetoId, (nTasksPorProjeto.get(t.projetoId) ?? 0) + 1);
+  }
+
+  const projetos: ProjetoPessoal[] = projetosRows.map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    desc: p.desc,
+    planejamento: p.planejamento,
+    stacks: p.stacks,
+    nTasks: nTasksPorProjeto.get(p.id) ?? 0,
+  }));
+
+  // Most recent non-recusado orçamento per freela, falling back to the most recent overall.
+  const melhorOrcamentoPorFreela = new Map<string, { id: string; status: string }>();
+  for (const o of orcamentosRows) {
+    const atual = melhorOrcamentoPorFreela.get(o.freelaId);
+    if (!atual) {
+      melhorOrcamentoPorFreela.set(o.freelaId, o);
+    } else if (atual.status === "recusado" && o.status !== "recusado") {
+      melhorOrcamentoPorFreela.set(o.freelaId, o);
+    }
+  }
+
+  const freelaTargets: FreelaTarget[] = freelasRows
+    .map((f) => {
+      const orc = melhorOrcamentoPorFreela.get(f.id);
+      return orc ? { id: f.id, nome: f.nome, tipo: f.tipo, cor: f.cor, orcamentoId: orc.id } : null;
+    })
+    .filter((x): x is FreelaTarget => x !== null);
 
   return {
     atrasadas: pendentes.filter((t) => t.atrasada),
@@ -102,6 +157,7 @@ export async function getTasksOverview(): Promise<TasksOverview> {
     semPrazo: pendentes.filter((t) => !t.prazo),
     concluidas,
     projetos,
+    freelaTargets,
   };
 }
 
@@ -125,7 +181,12 @@ export async function deleteTaskPessoal(id: string) {
   await db.delete(tasksPessoais).where(eq(tasksPessoais.id, id));
 }
 
-export async function createProjetoPessoal(nome: string) {
-  const [projeto] = await db.insert(projetosPessoais).values({ nome }).returning();
+export async function createProjetoPessoal(input: {
+  nome: string;
+  desc: string;
+  planejamento: string;
+  stacks: string[];
+}) {
+  const [projeto] = await db.insert(projetosPessoais).values(input).returning();
   return projeto;
 }

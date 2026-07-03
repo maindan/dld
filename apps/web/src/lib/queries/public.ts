@@ -1,4 +1,4 @@
-import { db, orcamentos, orcamentoItens, freelas } from "@danlimadev/db";
+import { db, orcamentos, orcamentoItens, freelas, clientes } from "@danlimadev/db";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { STATUS_ORCAMENTO_LIBERA_CRONOGRAMA } from "@/lib/cronograma-rules";
 
@@ -11,16 +11,31 @@ export interface OrcamentoPublico {
   pago: number;
   data: string;
   prazoExec: string;
+  termos: string;
   aprovadoEm: Date | null;
   freelaNome: string;
-  itens: { id: string; desc: string; tempo: string; valor: number; prazo: string | null }[];
+  freelaResumo: string;
+  clienteNome: string;
+  itens: {
+    id: string;
+    desc: string;
+    tempo: string;
+    valor: number;
+    link: string | null;
+    bullets: string[];
+    prazo: string | null;
+  }[];
 }
 
 export async function getOrcamentoPorChave(chave: string): Promise<OrcamentoPublico | null> {
   const [orcamento] = await db.select().from(orcamentos).where(eq(orcamentos.chave, chave));
   if (!orcamento || orcamento.status === "rascunho") return null;
 
-  const [freela] = await db.select().from(freelas).where(eq(freelas.id, orcamento.freelaId));
+  const [row] = await db
+    .select({ freela: freelas, cliente: clientes })
+    .from(freelas)
+    .innerJoin(clientes, eq(freelas.clienteId, clientes.id))
+    .where(eq(freelas.id, orcamento.freelaId));
   const itens = await db
     .select()
     .from(orcamentoItens)
@@ -36,13 +51,18 @@ export async function getOrcamentoPorChave(chave: string): Promise<OrcamentoPubl
     pago: Number(orcamento.pago),
     data: orcamento.data,
     prazoExec: orcamento.prazoExec,
+    termos: orcamento.termos,
     aprovadoEm: orcamento.aprovadoEm,
-    freelaNome: freela?.nome ?? "",
+    freelaNome: row?.freela.nome ?? "",
+    freelaResumo: row?.freela.resumo ?? "",
+    clienteNome: row?.cliente.nome ?? "",
     itens: itens.map((it) => ({
       id: it.id,
       desc: it.desc,
       tempo: it.tempo,
       valor: Number(it.valor),
+      link: it.link,
+      bullets: it.bullets,
       prazo: it.prazo,
     })),
   };
@@ -70,6 +90,7 @@ export interface CronogramaPublico {
   freelaNome: string;
   resumo: string;
   itens: CronogramaItem[];
+  pct: number;
 }
 
 export async function getCronogramaPorChave(chaveCrono: string): Promise<CronogramaPublico | null> {
@@ -96,17 +117,24 @@ export async function getCronogramaPorChave(chaveCrono: string): Promise<Cronogr
         .where(and(inArray(orcamentoItens.orcamentoId, orcamentoIds), isNotNull(orcamentoItens.prazo)))
     : [];
 
+  const itensOrdenados = itens
+    .map((it) => ({
+      id: it.id,
+      desc: it.desc,
+      prazo: it.prazo as string,
+      done: it.done,
+      orcamentoTitulo: titulos.get(it.orcamentoId) ?? "",
+    }))
+    .sort((a, b) => a.prazo.localeCompare(b.prazo));
+
+  const pct = itensOrdenados.length
+    ? Math.round((itensOrdenados.filter((it) => it.done).length / itensOrdenados.length) * 100)
+    : 0;
+
   return {
     freelaNome: freela.nome,
     resumo: freela.resumo,
-    itens: itens
-      .map((it) => ({
-        id: it.id,
-        desc: it.desc,
-        prazo: it.prazo as string,
-        done: it.done,
-        orcamentoTitulo: titulos.get(it.orcamentoId) ?? "",
-      }))
-      .sort((a, b) => a.prazo.localeCompare(b.prazo)),
+    itens: itensOrdenados,
+    pct,
   };
 }

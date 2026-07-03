@@ -23,7 +23,18 @@ export default async function CronogramaPublicoPage({ params }: { params: Promis
         {cronograma.resumo && <p className="text-[13px] text-muted-foreground">{cronograma.resumo}</p>}
 
         <div className="flex flex-col gap-4 rounded-[14px] border border-border bg-card p-5">
-          <div className="text-[13px] font-semibold tracking-wide text-muted-foreground uppercase">Cronograma</div>
+          <div className="flex flex-col gap-1.5">
+            <div className="text-[13px] font-semibold tracking-wide text-muted-foreground uppercase">Cronograma</div>
+            <div className="flex items-center gap-2.5">
+              <div className="h-[7px] flex-1 overflow-hidden rounded-full bg-background">
+                <div
+                  className="h-full rounded-full bg-success"
+                  style={{ width: `${cronograma.pct}%` }}
+                />
+              </div>
+              <span className="flex-none font-mono text-[11.5px] text-success">{cronograma.pct}%</span>
+            </div>
+          </div>
           {cronograma.itens.length === 0 ? (
             <div className="py-8 text-center text-[12.5px] text-muted-foreground">
               Nenhum item com prazo definido ainda.

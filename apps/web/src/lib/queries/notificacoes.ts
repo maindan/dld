@@ -20,6 +20,8 @@ export interface Notificacao {
   sub: string;
   screen: "tasks" | "freelas";
   freelaId: string | null;
+  /** Query-string tab to open on arrival, e.g. "orcamentos" for /freelas/[id]?tab=orcamentos. */
+  tab?: string;
 }
 
 export async function getNotificacoes(): Promise<Notificacao[]> {
@@ -123,6 +125,7 @@ export async function getNotificacoes(): Promise<Notificacao[]> {
       sub: `${o.freelaNome} · confirme o recebimento para liberar o cronograma`,
       screen: "freelas",
       freelaId: o.freelaId,
+      tab: "orcamentos",
     });
   }
 

@@ -8,6 +8,7 @@ export interface Post {
   slug: string;
   resumo: string;
   corpo: string;
+  capaUrl: string | null;
   status: "rascunho" | "publicado";
   publicadoEm: Date | null;
   updatedAt: Date;
@@ -15,6 +16,11 @@ export interface Post {
 
 export async function getPosts(): Promise<Post[]> {
   return db.select().from(posts).orderBy(desc(posts.updatedAt));
+}
+
+export async function getPostById(id: string): Promise<Post | undefined> {
+  const [post] = await db.select().from(posts).where(eq(posts.id, id));
+  return post;
 }
 
 async function slugUnico(titulo: string, ignorarId?: string): Promise<string> {
@@ -29,28 +35,70 @@ async function slugUnico(titulo: string, ignorarId?: string): Promise<string> {
   }
 }
 
-export async function createPost(input: { titulo: string; resumo: string; corpo: string }) {
-  const slug = await slugUnico(input.titulo);
-  const [post] = await db.insert(posts).values({ ...input, slug }).returning();
+/** Creates an empty draft so the board can navigate straight to the dedicated editor. */
+export async function createDraftPost(): Promise<Post> {
+  const slug = await slugUnico("sem-titulo");
+  const [post] = await db
+    .insert(posts)
+    .values({ titulo: "Sem título", slug, resumo: "", corpo: "" })
+    .returning();
   return post;
 }
 
-export async function updatePost(id: string, input: { titulo: string; resumo: string; corpo: string }) {
-  const slug = await slugUnico(input.titulo, id);
-  await db.update(posts).set({ ...input, slug, updatedAt: new Date() }).where(eq(posts.id, id));
+export interface PostFieldsInput {
+  titulo: string;
+  resumo: string;
+  corpo: string;
+  capaUrl?: string;
 }
 
-export async function setPostStatus(id: string, publicado: boolean) {
+/** Updates title/resumo/corpo/capa without touching status — used by "Salvar rascunho". */
+export async function updatePostFields(id: string, input: PostFieldsInput): Promise<void> {
+  const slug = await slugUnico(input.titulo, id);
   await db
     .update(posts)
     .set({
-      status: publicado ? "publicado" : "rascunho",
-      publicadoEm: publicado ? new Date() : null,
+      titulo: input.titulo,
+      resumo: input.resumo,
+      corpo: input.corpo,
+      ...(input.capaUrl !== undefined ? { capaUrl: input.capaUrl } : {}),
+      slug,
       updatedAt: new Date(),
     })
     .where(eq(posts.id, id));
 }
 
-export async function deletePost(id: string) {
+/** Persists fields and marks the post as published, stamping publicadoEm. */
+export async function publishPost(id: string, input: PostFieldsInput): Promise<void> {
+  const slug = await slugUnico(input.titulo, id);
+  await db
+    .update(posts)
+    .set({
+      titulo: input.titulo,
+      resumo: input.resumo,
+      corpo: input.corpo,
+      ...(input.capaUrl !== undefined ? { capaUrl: input.capaUrl } : {}),
+      slug,
+      status: "publicado",
+      publicadoEm: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(posts.id, id));
+}
+
+/** Reverts a published post back to draft, clearing publicadoEm. */
+export async function unpublishPost(id: string): Promise<void> {
+  await db
+    .update(posts)
+    .set({ status: "rascunho", publicadoEm: null, updatedAt: new Date() })
+    .where(eq(posts.id, id));
+}
+
+export async function getPostCapaUrl(id: string): Promise<string | null> {
+  const [post] = await db.select({ capaUrl: posts.capaUrl }).from(posts).where(eq(posts.id, id));
+  return post?.capaUrl ?? null;
+}
+
+export async function deletePost(id: string): Promise<void> {
   await db.delete(posts).where(eq(posts.id, id));
 }

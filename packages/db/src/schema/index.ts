@@ -1,4 +1,5 @@
 export * from "./profiles";
+export * from "./clientes";
 export * from "./freelas";
 export * from "./orcamentos";
 export * from "./metas";

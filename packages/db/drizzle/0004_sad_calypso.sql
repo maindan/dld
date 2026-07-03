@@ -1,0 +1,1 @@
+ALTER TABLE "landing_pages" ADD COLUMN "logo_url" text;

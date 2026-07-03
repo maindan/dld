@@ -29,6 +29,69 @@
       "when": 1783083670734,
       "tag": "0003_uploads_bucket",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783084039323,
+      "tag": "0004_sad_calypso",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783110030313,
+      "tag": "0005_clientes_and_lp_builder_additive",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783110590445,
+      "tag": "0006_backfill_clientes_and_lp_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783110643769,
+      "tag": "0007_drop_legacy_cliente_and_lp_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783113224995,
+      "tag": "0008_common_white_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783115323021,
+      "tag": "0009_orcamento_document_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783115943741,
+      "tag": "0010_orcamento_parcelas_additive",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783115964175,
+      "tag": "0011_backfill_orcamento_parcelas",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783116010187,
+      "tag": "0012_drop_legacy_orcamento_imposto_fields",
+      "breakpoints": true
     }
   ]
 }

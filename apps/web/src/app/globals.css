@@ -125,15 +125,132 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  html {
-    @apply font-sans;
-  }
+}
+
+/* Scrollbars follow the app's dark palette instead of the OS/browser default. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3340 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a3340;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a4553;
 }
 
 @keyframes dlPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+@keyframes dlPageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dl-page-transition {
+    animation: dlPageIn 0.22s ease-out both;
+  }
+}
+
+/* Rich text editor (TipTap) content — ships no styles of its own. */
+.dl-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: #55606e;
+  pointer-events: none;
+}
+.dl-editor .ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+.dl-editor .ProseMirror h1,
+.dl-editor .ProseMirror h2,
+.dl-editor .ProseMirror h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  color: #e6eaf0;
+}
+.dl-editor .ProseMirror h2 {
+  font-size: 1.3em;
+}
+.dl-editor .ProseMirror h3 {
+  font-size: 1.1em;
+}
+.dl-editor .ProseMirror ul,
+.dl-editor .ProseMirror ol {
+  padding-left: 1.4em;
+}
+.dl-editor .ProseMirror a {
+  color: #818cf8;
+  text-decoration: underline;
+}
+.dl-editor .ProseMirror blockquote {
+  border-left: 3px solid #303a47;
+  padding-left: 0.9em;
+  color: #8b96a5;
+}
+.dl-editor .ProseMirror code {
+  background: #1b222c;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.dl-editor .ProseMirror pre {
+  background: #11151c;
+  border: 1px solid #262e39;
+  border-radius: 8px;
+  padding: 0.8em 1em;
+  overflow-x: auto;
+}
+.dl-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+.dl-editor .ProseMirror img.dl-post-image {
+  max-width: 100%;
+  border-radius: 8px;
+}
+.dl-editor .ProseMirror a.dl-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  background: #1b222c;
+  border: 1px solid #262e39;
+  border-radius: 6px;
+  padding: 0.15em 0.6em;
+  font-size: 0.9em;
+  text-decoration: none;
+  color: #c9d1dc;
+}
+
+@media print {
+  /* html/body are pinned to 100dvh + overflow-hidden on screen (see layout.tsx) so the
+     sidebar never stretches past the viewport — printing needs the opposite: full
+     document height, no clipping, so a multi-page orçamento actually paginates. */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  @page {
+    margin: 1.6cm;
+  }
 }

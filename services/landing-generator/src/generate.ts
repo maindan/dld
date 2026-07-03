@@ -1,22 +1,19 @@
 import { readdir, readFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import archiver from "archiver";
-import {
-  gerarLandingPageSchema,
-  slugify,
-  type GerarLandingPageInput,
-  type GerarLandingPageResult,
-} from "@danlimadev/contracts";
-import { LANDING_PAGE_MODELS } from "./models";
+import { gerarLandingPageSchema, type GerarLandingPageInput, type GerarLandingPageResult } from "@danlimadev/contracts";
+import { renderProject } from "./render/page";
 
-const TEMPLATES_DIR = join(fileURLToPath(new URL(".", import.meta.url)), "templates");
+// `dirname(fileURLToPath(...))` instead of `fileURLToPath(new URL(".", import.meta.url))`:
+// the latter constructs an intermediate URL object that Turbopack's module wrapping of
+// `import.meta.url` doesn't reliably round-trip (throws "Received an instance of URL" at
+// runtime under `next dev`), even though plain Node ESM handles it fine.
+const SKELETON_DIR = join(dirname(fileURLToPath(import.meta.url)), "skeleton");
 
-function applyTokens(content: string, tokens: Record<string, string>): string {
-  return Object.entries(tokens).reduce(
-    (acc, [key, value]) => acc.replaceAll(`{{${key}}}`, value),
-    content,
-  );
+export interface GenerateLandingPageOutput {
+  buffer: Buffer;
+  result: GerarLandingPageResult;
 }
 
 async function* walk(dir: string): AsyncGenerator<string> {
@@ -30,31 +27,31 @@ async function* walk(dir: string): AsyncGenerator<string> {
   }
 }
 
-export interface GenerateLandingPageOutput {
-  buffer: Buffer;
-  result: GerarLandingPageResult;
+/** `skeleton/gitignore` -> `.gitignore` in the zip (a literal `.gitignore` file living inside
+ * this repo's `src/skeleton/` would apply its own ignore rules to that subtree, which is
+ * confusing for a file that's actually just zip payload — so it's kept dotless on disk and
+ * renamed only at archive time). Every other skeleton file's on-disk name is its zip name. */
+function skeletonEntryName(relativePath: string): string {
+  return relativePath === "gitignore" ? ".gitignore" : relativePath;
 }
 
 /**
- * Renders the `templates/<modeloId>` directory into a downloadable Next.js
- * project zip. Only the "base" model exists today; adding a model is adding
- * a template directory, not touching this function.
+ * Renders a full, real Next.js project (App Router) from a `GerarLandingPageInput`
+ * and packs it into a downloadable zip buffer.
+ *
+ * Two halves, cleanly separated:
+ *  - `src/skeleton/` — files that never vary by theme or content (package.json,
+ *    next.config.mjs, tsconfig.json, next-env.d.ts, .gitignore, README.md). Copied
+ *    byte-for-byte except `package.json`, whose `name` field is set to the project's slug.
+ *  - `src/render/` — the actual rendering engine. `renderProject` turns the chosen theme
+ *    (`LANDING_PAGE_MODELS`) plus every dynamic section/header/footer/whatsapp config into
+ *    `app/page.tsx`, `app/layout.tsx` and `app/globals.css`.
  */
-export async function generateLandingPageZip(
-  input: GerarLandingPageInput,
-): Promise<GenerateLandingPageOutput> {
+export async function generateLandingPageZip(input: GerarLandingPageInput): Promise<GenerateLandingPageOutput> {
   const parsed = gerarLandingPageSchema.parse(input);
 
-  if (!LANDING_PAGE_MODELS.some((m) => m.id === parsed.modeloId)) {
-    throw new Error(`Modelo de landing page desconhecido: "${parsed.modeloId}"`);
-  }
-  const templateDir = join(TEMPLATES_DIR, parsed.modeloId);
-
-  const tokens = {
-    MARCA: parsed.marca,
-    COR_ACENTO: parsed.corAcento,
-    SLUG: slugify(parsed.marca) || "landing-page",
-  };
+  // Throws with a clear message for an unknown modeloId before any archiving work happens.
+  const { slug, pageTsx, layoutTsx, globalsCss } = renderProject(parsed);
 
   const archive = archiver("zip", { zlib: { level: 9 } });
   const chunks: Buffer[] = [];
@@ -64,18 +61,29 @@ export async function generateLandingPageZip(
     archive.on("error", reject);
   });
 
-  for await (const filePath of walk(templateDir)) {
-    const raw = await readFile(filePath, "utf-8");
-    const rendered = applyTokens(raw, tokens);
-    const relativePath = relative(templateDir, filePath).replace(/\.template$/, "");
-    archive.append(rendered, { name: relativePath });
+  for await (const filePath of walk(SKELETON_DIR)) {
+    const relativePath = relative(SKELETON_DIR, filePath).split("\\").join("/");
+    const entryName = skeletonEntryName(relativePath);
+
+    if (relativePath === "package.json") {
+      const pkg = JSON.parse(await readFile(filePath, "utf-8")) as Record<string, unknown>;
+      pkg.name = slug;
+      archive.append(JSON.stringify(pkg, null, 2) + "\n", { name: entryName });
+      continue;
+    }
+
+    archive.append(await readFile(filePath), { name: entryName });
   }
+
+  archive.append(pageTsx, { name: "app/page.tsx" });
+  archive.append(layoutTsx, { name: "app/layout.tsx" });
+  archive.append(globalsCss, { name: "app/globals.css" });
 
   await archive.finalize();
   await done;
 
   const buffer = Buffer.concat(chunks);
-  const nomeArquivo = `${tokens.SLUG}.zip`;
+  const nomeArquivo = `${slug}.zip`;
 
   return {
     buffer,

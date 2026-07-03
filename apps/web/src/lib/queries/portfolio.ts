@@ -5,6 +5,7 @@ export interface PortfolioItem {
   id: string;
   titulo: string;
   desc: string;
+  imagem: string | null;
   stack: string[];
   github: string;
   link: string;
@@ -15,12 +16,21 @@ export async function getPortfolioItens(): Promise<PortfolioItem[]> {
   return db.select().from(portfolioItens).orderBy(asc(portfolioItens.ordem));
 }
 
+export async function getPortfolioItemImagem(id: string): Promise<string | null> {
+  const [row] = await db
+    .select({ imagem: portfolioItens.imagem })
+    .from(portfolioItens)
+    .where(eq(portfolioItens.id, id));
+  return row?.imagem ?? null;
+}
+
 export async function createPortfolioItem(input: {
   titulo: string;
   desc: string;
   stack: string[];
   github: string;
   link: string;
+  imagem?: string | null;
 }) {
   const itens = await db.select({ ordem: portfolioItens.ordem }).from(portfolioItens);
   const proximaOrdem = itens.reduce((max, i) => Math.max(max, i.ordem), -1) + 1;
@@ -29,7 +39,7 @@ export async function createPortfolioItem(input: {
 
 export async function updatePortfolioItem(
   id: string,
-  input: { titulo: string; desc: string; stack: string[]; github: string; link: string },
+  input: { titulo: string; desc: string; stack: string[]; github: string; link: string; imagem?: string },
 ) {
   await db.update(portfolioItens).set(input).where(eq(portfolioItens.id, id));
 }

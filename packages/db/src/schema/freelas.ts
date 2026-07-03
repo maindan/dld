@@ -6,6 +6,7 @@ import {
   timestamp,
   pgEnum,
 } from "drizzle-orm/pg-core";
+import { clientes } from "./clientes";
 
 export const contratoStatusEnum = pgEnum("contrato_status", ["pendente", "assinado"]);
 export const contratoModoEnum = pgEnum("contrato_modo", ["modelo", "anexo"]);
@@ -20,9 +21,9 @@ export const freelas = pgTable("freelas", {
   nome: text("nome").notNull(),
   tipo: text("tipo").notNull().default(""),
   cor: text("cor").notNull().default("#818cf8"),
-  clienteNome: text("cliente_nome").notNull(),
-  clienteEmail: text("cliente_email").notNull().default(""),
-  clienteWhatsapp: text("cliente_whatsapp").notNull().default(""),
+  clienteId: uuid("cliente_id")
+    .notNull()
+    .references(() => clientes.id),
   /** Public token for /cronograma/[chave]. */
   chaveCrono: text("chave_crono").notNull().unique(),
   resumo: text("resumo").notNull().default(""),

@@ -1,6 +1,6 @@
 export { slugify } from "@danlimadev/contracts";
 
-const MESES_ABREV = [
+export const MESES_ABREV = [
   "jan", "fev", "mar", "abr", "mai", "jun",
   "jul", "ago", "set", "out", "nov", "dez",
 ];
@@ -17,6 +17,18 @@ export function formatDateLong(iso: string | null | undefined): string {
   if (!iso) return "";
   const [, m, d] = iso.split("-");
   return `${d} ${MESES_ABREV[Number(m) - 1]}`;
+}
+
+const MESES_EXTENSO = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+/** "2026-07-02" -> "02 de julho de 2026" */
+export function formatDateExtenso(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d} de ${MESES_EXTENSO[Number(m) - 1]} de ${y}`;
 }
 
 /** 8400.5 -> "R$ 8.401" */
@@ -45,6 +57,11 @@ export function formatHMS(totalSeconds: number): string {
 /** 4.25 -> "4,3h" */
 export function formatHours(horas: number): string {
   return `${horas.toFixed(1).replace(".", ",")}h`;
+}
+
+/** (2026, 6) -> "jul/26" (monthIndex0 is 0-based, like Date#getMonth). */
+export function formatMonthLabel(year: number, monthIndex0: number): string {
+  return `${MESES_ABREV[monthIndex0]}/${String(year).slice(2)}`;
 }
 
 /**

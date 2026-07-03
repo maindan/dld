@@ -1,0 +1,3 @@
+ALTER TABLE "orcamento_itens" ADD COLUMN "link" text;--> statement-breakpoint
+ALTER TABLE "orcamento_itens" ADD COLUMN "bullets" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "orcamentos" ADD COLUMN "termos" text DEFAULT 'O orçamento possui prazo de 30 dias após recebimento, contempla os serviços descritos acima e 6 meses (a contar da entrega do serviço) de manutenção de bugs e atualizações relacionadas aos serviços prestados, que não incluem adição de novas funcionalidades além dos serviços descritos, caso surjam novas demandas após finalização do serviço será elaborado novo orçamento.' NOT NULL;
