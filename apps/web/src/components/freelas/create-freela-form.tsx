@@ -18,8 +18,11 @@ import type { ClienteListItem } from "@/lib/queries/clientes";
 /** Fixed rotation palette — the next freela always gets PALETTE[count % PALETTE.length]. */
 const PALETTE = ["#818cf8", "#f472b6", "#34d399", "#fbbf24", "#60a5fa", "#a78bfa", "#f87171"];
 
+// w-full: without it a bare <select> sizes to its widest <option> text (client
+// nome + empresa, both user-generated and unbounded) instead of the container,
+// so a long client name pushes the field past the modal's edge.
 const inputClass =
-  "min-w-0 rounded-[9px] border border-border bg-[#0e1116] px-3 py-2 text-[13px] outline-none focus:border-primary";
+  "w-full min-w-0 rounded-[9px] border border-border bg-[#0e1116] px-3 py-2 text-[13px] outline-none focus:border-primary";
 
 /** Sentinel <option> value that opens the inline "novo cliente" dialog instead of selecting a real cliente. */
 const NOVO_CLIENTE_VALUE = "__novo_cliente__";
