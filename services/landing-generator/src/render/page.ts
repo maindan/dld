@@ -1,9 +1,11 @@
 import { slugify, type GerarLandingPageInput } from "@danlimadev/contracts";
 import { LANDING_PAGE_MODELS, type LandingPageTheme } from "../models";
-import { buildHeaderScrollScript, buildRevealScript } from "./animation";
+import { buildCounterScript, buildHeaderScrollScript, buildRevealScript } from "./animation";
+import { renderBackgroundDecor } from "./backgrounds";
 import { buildGoogleFontsHref } from "./fonts";
 import { renderFooter } from "./footer";
 import { renderHeader } from "./header";
+import { resolveDesign, type ResolvedDesign } from "./resolve-design";
 import { renderSection } from "./sections";
 import { buildGlobalsCss } from "./theme-css";
 import { jsExpr } from "./utils";
@@ -33,26 +35,37 @@ export function getTheme(modeloId: string): LandingPageTheme {
  */
 export function renderProject(input: GerarLandingPageInput): RenderedProject {
   const theme = getTheme(input.modeloId);
+  const design = resolveDesign(theme, input.corAcento, input.design);
   const slug = slugify(input.header.titulo) || slugify(input.modeloId) || "landing-page";
 
-  const headerHtml = renderHeader(input.header, theme, input.corAcento);
+  const decorHtml = renderBackgroundDecor(design);
+  const headerHtml = renderHeader(input.header, design);
   const sectionsHtml = input.secoes
-    .map((secao) => renderSection(secao, theme, input.footer.email))
+    .map((secao) => renderSection(secao, design, input.footer.email))
     .join("\n\n      ");
   const footerHtml = renderFooter(input.footer);
   const whatsappHtml = renderWhatsappButton(input.whatsapp);
 
-  const scripts = [buildHeaderScrollScript(theme), buildRevealScript(theme)].filter(Boolean).join("\n\n");
+  // Counter script only ships when there's a stats block to animate.
+  const temEstatisticas = input.secoes.some((secao) => secao.tipo === "estatisticas");
+  const scripts = [
+    buildHeaderScrollScript(design),
+    buildRevealScript(design),
+    temEstatisticas ? buildCounterScript() : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   return {
     slug,
-    pageTsx: buildPageTsx({ headerHtml, sectionsHtml, footerHtml, whatsappHtml, scripts }),
-    layoutTsx: buildLayoutTsx(theme, input.header.titulo || slug),
-    globalsCss: buildGlobalsCss(theme, input.corAcento),
+    pageTsx: buildPageTsx({ decorHtml, headerHtml, sectionsHtml, footerHtml, whatsappHtml, scripts }),
+    layoutTsx: buildLayoutTsx(design, input.header.titulo || slug),
+    globalsCss: buildGlobalsCss(design),
   };
 }
 
 interface PageParts {
+  decorHtml: string;
   headerHtml: string;
   sectionsHtml: string;
   footerHtml: string;
@@ -71,9 +84,11 @@ function buildPageTsx(parts: PageParts): string {
     ? `\n      <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: ${jsExpr(parts.scripts)} }} />`
     : "";
 
+  const decor = parts.decorHtml ? `\n      ${parts.decorHtml}\n` : "";
+
   return `export default function Page() {
   return (
-    <main id="topo">
+    <main id="topo">${decor}
       ${parts.headerHtml}
 
       ${parts.sectionsHtml}
@@ -87,8 +102,8 @@ function buildPageTsx(parts: PageParts): string {
 `;
 }
 
-function buildLayoutTsx(theme: LandingPageTheme, title: string): string {
-  const fontsHref = buildGoogleFontsHref(theme);
+function buildLayoutTsx(design: ResolvedDesign, title: string): string {
+  const fontsHref = buildGoogleFontsHref(design);
   return `import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";

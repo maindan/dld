@@ -120,6 +120,8 @@ describe("generateLandingPageZip - estrutura do projeto gerado", () => {
     expect(entryNames).toContain("next.config.mjs");
     expect(entryNames).toContain("tsconfig.json");
     expect(entryNames).toContain("next-env.d.ts");
+    // augmentação que libera custom properties CSS (--i/--hd/--w) no style inline
+    expect(entryNames).toContain("css-custom-properties.d.ts");
     expect(entryNames).toContain(".gitignore");
     expect(entryNames).toContain("README.md");
     expect(entryNames).toContain("app/page.tsx");
@@ -181,8 +183,12 @@ describe.each(LANDING_PAGE_MODELS)("generateLandingPageZip - tema '$id'", (theme
     expect(pageContent).toContain("<img");
     expect(pageContent).toContain(`Marca ${theme.id}`);
 
-    // (b) cada campo/item aparece literalmente no output
-    expect(pageContent).toContain(`Titulo Hero ${theme.id}`);
+    // (b) cada campo/item aparece literalmente no output. O título do hero é
+    // a exceção intencional: o gerador o divide para aplicar o gradiente de
+    // acento na última palavra (tituloComGradiente), então as duas metades
+    // aparecem como literais separados.
+    expect(pageContent).toContain(`Titulo Hero `);
+    expect(pageContent).toContain(`<span className="hero-grad">{${JSON.stringify(theme.id)}}</span>`);
     expect(pageContent).toContain(`Subtitulo Hero ${theme.id}`);
     expect(pageContent).toContain(`CTA Hero ${theme.id}`);
     expect(pageContent).toContain(`Titulo Servicos ${theme.id}`);
@@ -227,14 +233,172 @@ describe.each(LANDING_PAGE_MODELS)("generateLandingPageZip - tema '$id'", (theme
 });
 
 // ---------------------------------------------------------------------------
-// All 13 catalog block types render standalone, without throwing
+// Design system: theme defaults, per-page overrides, decor, animation scripts
+// ---------------------------------------------------------------------------
+
+describe("generateLandingPageZip - design resolvido (tema + overrides)", () => {
+  it("sem overrides: usa os defaults do tema (background, card, radius, animação)", async () => {
+    const input = buildInput({ modeloId: "produto", corAcento: "#818cf8", comLogo: true, whatsappAtivo: false });
+    const { buffer } = await generateLandingPageZip(input);
+
+    const zip = new AdmZip(buffer);
+    const cssContent = readEntry(zip, "app/globals.css");
+    const pageContent = readEntry(zip, "app/page.tsx");
+
+    // tema "produto": aurora + glass + radius 16 + zoom-in
+    expect(cssContent).toContain("/* estiloBackground: aurora */");
+    expect(cssContent).toContain("/* estiloCard: glass */");
+    expect(cssContent).toContain("--radius: 16px;");
+    expect(cssContent).toContain("estiloAnimacao: zoom-in");
+    // decor de aurora entra como primeiro filho do <main>, e as seções ganham data-reveal
+    expect(pageContent).toContain("bg-decor--aurora");
+    expect(pageContent).toContain("data-reveal");
+    expect(pageContent).toContain("IntersectionObserver");
+  });
+
+  it("com overrides: fonte, background, botão, card, radius e animação do design vencem o tema", async () => {
+    const input: GerarLandingPageInput = {
+      ...buildInput({ modeloId: "base", corAcento: "#10b981", comLogo: false, whatsappAtivo: false }),
+      design: {
+        fonteTitulo: "Syne",
+        estiloBotao: "pill",
+        estiloAnimacao: "none",
+        estiloBackground: "grid-glow",
+        estiloCard: "outline",
+        radius: 0,
+      },
+    };
+    const { buffer } = await generateLandingPageZip(input);
+
+    const zip = new AdmZip(buffer);
+    const cssContent = readEntry(zip, "app/globals.css");
+    const pageContent = readEntry(zip, "app/page.tsx");
+    const layoutContent = readEntry(zip, "app/layout.tsx");
+
+    expect(layoutContent).toContain("family=Syne");
+    expect(cssContent).toContain("/* estiloBackground: grid-glow */");
+    expect(cssContent).toContain("/* estiloCard: outline */");
+    expect(cssContent).toContain("--radius: 0px;");
+    expect(cssContent).toContain("--radius-btn: 999px;");
+    expect(pageContent).toContain("bg-decor--grid-glow");
+    // estiloAnimacao none: nenhuma seção ganha data-reveal e o script de reveal não embarca
+    expect(pageContent).not.toContain("data-reveal");
+    expect(pageContent).not.toContain("IntersectionObserver");
+  });
+
+  it("estiloBackground minimal: nenhum decor no markup nem CSS de camada decorativa", async () => {
+    const input: GerarLandingPageInput = {
+      ...buildInput({ modeloId: "base", corAcento: "#6366f1", comLogo: false, whatsappAtivo: false }),
+      design: { estiloBackground: "minimal" },
+    };
+    const { buffer } = await generateLandingPageZip(input);
+
+    const zip = new AdmZip(buffer);
+    const pageContent = readEntry(zip, "app/page.tsx");
+    const cssContent = readEntry(zip, "app/globals.css");
+
+    expect(pageContent).not.toContain("bg-decor");
+    expect(cssContent).toContain("/* estiloBackground: minimal */");
+  });
+
+  it("bloco estatisticas: contadores com data-target e o script de contagem embarcado", async () => {
+    const base = buildInput({ modeloId: "base", corAcento: "#6366f1", comLogo: false, whatsappAtivo: false });
+    const input: GerarLandingPageInput = {
+      ...base,
+      secoes: [
+        ...base.secoes,
+        secao("sec-stats", "estatisticas", { titulo: "Números" }, [
+          { id: "e1", campos: { valor: "120", sufixo: "+", label: "projetos" } },
+          { id: "e2", campos: { valor: "4,8", sufixo: "", label: "avaliação média" } },
+          { id: "e3", campos: { valor: "24/7", sufixo: "", label: "suporte" } },
+        ]),
+      ],
+    };
+    const { buffer } = await generateLandingPageZip(input);
+    const pageContent = readEntry(new AdmZip(buffer), "app/page.tsx");
+
+    expect(pageContent).toContain(`data-counter data-target="120" data-decimals="0"`);
+    // decimal com vírgula: target com ponto, display pt-BR
+    expect(pageContent).toContain(`data-counter data-target="4.8" data-decimals="1"`);
+    expect(pageContent).toContain(`{"4,8"}`);
+    // "24/7" não é contável: renderiza literal, sem data-counter
+    expect(pageContent).toContain(`<span>{"24/7"}</span>`);
+    expect(pageContent).toContain("data-counter");
+    expect(pageContent).toContain("requestAnimationFrame");
+  });
+
+  it("sem bloco estatisticas: o script de contadores não embarca", async () => {
+    const input = buildInput({ modeloId: "base", corAcento: "#6366f1", comLogo: false, whatsappAtivo: false });
+    const { buffer } = await generateLandingPageZip(input);
+    const pageContent = readEntry(new AdmZip(buffer), "app/page.tsx");
+
+    expect(pageContent).not.toContain("data-counter");
+    expect(pageContent).not.toContain("requestAnimationFrame");
+  });
+
+  it("bloco marcas: marquee com grupo duplicado aria-hidden (loop contínuo)", async () => {
+    const base = buildInput({ modeloId: "base", corAcento: "#6366f1", comLogo: false, whatsappAtivo: false });
+    const input: GerarLandingPageInput = {
+      ...base,
+      secoes: [
+        ...base.secoes,
+        secao("sec-marcas", "marcas", { titulo: "Quem confia" }, [
+          { id: "m1", campos: { nome: "Acme", imagemUrl: "" } },
+          { id: "m2", campos: { nome: "Globex", imagemUrl: "https://cdn.exemplo.com/globex.svg" } },
+          { id: "m3", campos: { nome: "Initech", imagemUrl: "" } },
+        ]),
+      ],
+    };
+    const { buffer } = await generateLandingPageZip(input);
+    const pageContent = readEntry(new AdmZip(buffer), "app/page.tsx");
+
+    expect(pageContent).toContain(`className="marquee"`);
+    expect(pageContent).toContain(`<div className="marquee-group" aria-hidden="true">`);
+    expect(pageContent).toContain(`{"Acme"}`);
+    expect(pageContent).toContain("https://cdn.exemplo.com/globex.svg");
+  });
+
+  it("variantes de layout: hero split e depoimentos marquee saem com as classes certas", async () => {
+    const base = buildInput({ modeloId: "base", corAcento: "#6366f1", comLogo: false, whatsappAtivo: false });
+    const input: GerarLandingPageInput = {
+      ...base,
+      secoes: base.secoes.map((s) => {
+        if (s.tipo === "hero") return { ...s, variante: "split" };
+        if (s.tipo === "depoimentos") return { ...s, variante: "marquee" };
+        return s;
+      }),
+    };
+    const { buffer } = await generateLandingPageZip(input);
+    const pageContent = readEntry(new AdmZip(buffer), "app/page.tsx");
+
+    expect(pageContent).toContain("hero--split");
+    // split sem imagemUrl: mockup CSS no lugar de <img> quebrada
+    expect(pageContent).toContain("hero-mockup");
+    expect(pageContent).toContain("testimonials-marquee");
+  });
+
+  it("variante desconhecida degrada para o layout padrão em vez de quebrar", async () => {
+    const base = buildInput({ modeloId: "base", corAcento: "#6366f1", comLogo: false, whatsappAtivo: false });
+    const input: GerarLandingPageInput = {
+      ...base,
+      secoes: base.secoes.map((s) => (s.tipo === "hero" ? { ...s, variante: "nao-existe" } : s)),
+    };
+    const { buffer } = await generateLandingPageZip(input);
+    const pageContent = readEntry(new AdmZip(buffer), "app/page.tsx");
+
+    expect(pageContent).toContain("hero--centrado");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// All 15 catalog block types render standalone, without throwing
 // ---------------------------------------------------------------------------
 
 describe("generateLandingPageZip - todos os tipos de bloco do catálogo", () => {
   const tipos = Object.keys(SECAO_BLOCKS);
 
-  it("cobre pelo menos os 13 tipos descritos no contrato, sem nenhum ficar de fora do dispatch de renderização", () => {
-    expect(tipos.length).toBeGreaterThanOrEqual(13);
+  it("cobre pelo menos os 15 tipos descritos no contrato, sem nenhum ficar de fora do dispatch de renderização", () => {
+    expect(tipos.length).toBeGreaterThanOrEqual(15);
   });
 
   it.each(tipos)("renderiza o bloco '%s' isoladamente sem lançar erro", async (tipo) => {

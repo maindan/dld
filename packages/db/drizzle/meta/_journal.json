@@ -92,6 +92,13 @@
       "when": 1783116010187,
       "tag": "0012_drop_legacy_orcamento_imposto_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783126533942,
+      "tag": "0013_lp_design_config",
+      "breakpoints": true
     }
   ]
 }

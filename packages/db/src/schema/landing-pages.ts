@@ -12,6 +12,8 @@ export const landingPages = pgTable("landing_pages", {
   freelaId: uuid("freela_id").references(() => freelas.id, { onDelete: "set null" }),
   modeloId: text("modelo_id").notNull(),
   corAcento: text("cor_acento").notNull().default("#818cf8"),
+  /** Per-page DesignConfig overrides (fonts, background, button, radius...); null = theme defaults. */
+  design: jsonb("design"),
   header: jsonb("header").notNull(),
   footer: jsonb("footer").notNull(),
   whatsapp: jsonb("whatsapp").notNull(),

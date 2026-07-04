@@ -1,15 +1,15 @@
 import type { Secao } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../../models";
+import type { ResolvedDesign } from "../resolve-design";
 import { campo, itemBool, itemCampo, jsExpr, linhasDe } from "../utils";
-import { sectionHeading, SECTION_CLOSE, sectionOpen } from "./shared";
+import { sectionHeading, SECTION_CLOSE, sectionOpen, staggerStyle } from "./shared";
 
 /** Pricing columns; the item with `destaque=true` gets the highlighted treatment. */
-export function renderPrecos(secao: Secao, theme: LandingPageTheme): string {
+export function renderPrecos(secao: Secao, design: ResolvedDesign): string {
   const titulo = campo(secao, "titulo", "Planos e preços");
   const itens = secao.itens ?? [];
 
   const cards = itens
-    .map((item) => {
+    .map((item, i) => {
       const nome = itemCampo(item, "nome", "Plano");
       const preco = itemCampo(item, "preco", "Sob consulta");
       const recursos = linhasDe(itemCampo(item, "recursos", ""));
@@ -19,7 +19,7 @@ export function renderPrecos(secao: Secao, theme: LandingPageTheme): string {
         .map((linha) => `<li>{${jsExpr(linha)}}</li>`)
         .join("\n              ");
 
-      return `<div className="card pricing-card${destaque ? " pricing-card--destaque" : ""}">
+      return `<div className="card pricing-card${destaque ? " pricing-card--destaque" : ""}"${staggerStyle(i)}>
             ${destaque ? `<span className="pricing-badge">Mais popular</span>` : ""}
             <p className="pricing-name">{${jsExpr(nome)}}</p>
             <p className="pricing-price">{${jsExpr(preco)}}</p>
@@ -31,10 +31,10 @@ export function renderPrecos(secao: Secao, theme: LandingPageTheme): string {
     })
     .join("\n          ");
 
-  return `${sectionOpen(secao, theme)}
+  return `${sectionOpen(secao, design)}
         <div className="container">
           ${sectionHeading(titulo)}
-          <div className="grid grid-3">
+          <div className="grid grid-3 stagger">
             ${cards}
           </div>
         </div>

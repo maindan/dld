@@ -1,10 +1,10 @@
 import type { Secao } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../../models";
+import type { ResolvedDesign } from "../resolve-design";
 import { campo, itemCampo, jsExpr } from "../utils";
 import { sectionHeading, SECTION_CLOSE, sectionOpen } from "./shared";
 
 /** Native `<details>/<summary>` accordion — zero JS needed for the toggle. */
-export function renderFaq(secao: Secao, theme: LandingPageTheme): string {
+export function renderFaq(secao: Secao, design: ResolvedDesign): string {
   const titulo = campo(secao, "titulo", "Perguntas frequentes");
   const itens = secao.itens ?? [];
 
@@ -19,7 +19,7 @@ export function renderFaq(secao: Secao, theme: LandingPageTheme): string {
     })
     .join("\n            ");
 
-  return `${sectionOpen(secao, theme, "section-alt")}
+  return `${sectionOpen(secao, design, "section-alt")}
         <div className="container">
           ${sectionHeading(titulo)}
           <div className="faq-list">

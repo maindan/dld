@@ -1,10 +1,10 @@
 import type { Secao } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../../models";
+import type { ResolvedDesign } from "../resolve-design";
 import { campo, itemCampo, jsExpr, nivelPercentual } from "../utils";
 import { sectionHeading, SECTION_CLOSE, sectionOpen } from "./shared";
 
 /** Progress bars, one per skill, width proportional to the `nivel` field (0-100). */
-export function renderHabilidades(secao: Secao, theme: LandingPageTheme): string {
+export function renderHabilidades(secao: Secao, design: ResolvedDesign): string {
   const titulo = campo(secao, "titulo", "Habilidades");
   const itens = secao.itens ?? [];
 
@@ -18,13 +18,13 @@ export function renderHabilidades(secao: Secao, theme: LandingPageTheme): string
               <span className="skill-level">{${jsExpr(`${nivel}%`)}}</span>
             </div>
             <div className="skill-track">
-              <div className="skill-fill" style={{ width: ${jsExpr(`${nivel}%`)} }} />
+              <div className="skill-fill" style={{ "--w": ${jsExpr(`${nivel}%`)} }} />
             </div>
           </div>`;
     })
     .join("\n          ");
 
-  return `${sectionOpen(secao, theme)}
+  return `${sectionOpen(secao, design)}
         <div className="container">
           ${sectionHeading(titulo)}
           <div className="skills-list">

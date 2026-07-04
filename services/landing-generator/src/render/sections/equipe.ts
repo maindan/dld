@@ -1,10 +1,10 @@
 import type { Secao } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../../models";
+import type { ResolvedDesign } from "../resolve-design";
 import { campo, iniciais, itemCampo, jsExpr } from "../utils";
-import { sectionHeading, SECTION_CLOSE, sectionOpen } from "./shared";
+import { avatar, sectionHeading, SECTION_CLOSE, sectionOpen, staggerStyle } from "./shared";
 
-/** Grid of team members: initials avatar (no photo field in the contract) + nome/cargo. */
-export function renderEquipe(secao: Secao, theme: LandingPageTheme): string {
+/** Grid of team members: real photo when `imagemUrl` is set, initials avatar otherwise. */
+export function renderEquipe(secao: Secao, design: ResolvedDesign): string {
   const titulo = campo(secao, "titulo", "Nosso time");
   const itens = secao.itens ?? [];
 
@@ -12,18 +12,19 @@ export function renderEquipe(secao: Secao, theme: LandingPageTheme): string {
     .map((item, i) => {
       const nome = itemCampo(item, "nome", `Pessoa ${i + 1}`);
       const cargo = itemCampo(item, "cargo", "");
-      return `<div className="card team-card">
-            <span className="team-avatar">{${jsExpr(iniciais(nome))}}</span>
+      const imagemUrl = itemCampo(item, "imagemUrl", "");
+      return `<div className="card team-card"${staggerStyle(i)}>
+            ${avatar(imagemUrl, nome, iniciais(nome), "team-avatar")}
             <p className="team-name">{${jsExpr(nome)}}</p>
             ${cargo ? `<p className="team-role">{${jsExpr(cargo)}}</p>` : ""}
           </div>`;
     })
     .join("\n          ");
 
-  return `${sectionOpen(secao, theme)}
+  return `${sectionOpen(secao, design)}
         <div className="container">
           ${sectionHeading(titulo)}
-          <div className="grid grid-4">
+          <div className="grid grid-4 stagger">
             ${cards}
           </div>
         </div>

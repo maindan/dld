@@ -1,6 +1,13 @@
 import { db, landingPages, freelas } from "@danlimadev/db";
 import { eq, desc } from "drizzle-orm";
-import type { GerarLandingPageInput, Secao, HeaderConfig, FooterConfig, WhatsappConfig } from "@danlimadev/contracts";
+import type {
+  DesignConfig,
+  GerarLandingPageInput,
+  Secao,
+  HeaderConfig,
+  FooterConfig,
+  WhatsappConfig,
+} from "@danlimadev/contracts";
 import { LANDING_PAGE_MODELS } from "@danlimadev/landing-generator/models";
 import { buildInitialLandingPageState } from "@/lib/landing-pages/initial-secoes";
 
@@ -25,6 +32,8 @@ export interface LandingPageDetail {
   modeloNome: string;
   freelaId: string | null;
   corAcento: string;
+  /** Per-page design overrides (Design tab); null = pure theme defaults. */
+  design: DesignConfig | null;
   header: HeaderConfig;
   secoes: Secao[];
   footer: FooterConfig;
@@ -35,6 +44,8 @@ export interface LandingPageDetail {
 
 export interface LandingPagePatch {
   corAcento?: string;
+  /** null clears every override back to the theme defaults. */
+  design?: DesignConfig | null;
   header?: HeaderConfig;
   secoes?: Secao[];
   footer?: FooterConfig;
@@ -110,6 +121,7 @@ export async function getLandingPageDetail(id: string): Promise<LandingPageDetai
     modeloNome: modeloNomeFor(row.modeloId),
     freelaId: row.freelaId,
     corAcento: row.corAcento,
+    design: (row.design as DesignConfig | null) ?? null,
     header: row.header as HeaderConfig,
     secoes: (row.secoes as Secao[] | null) ?? [],
     footer: row.footer as FooterConfig,
@@ -142,6 +154,9 @@ export async function getLandingPageGerarInput(id: string): Promise<GerarLanding
   return {
     modeloId: draft.modeloId,
     corAcento: draft.corAcento,
+    // Only forward `design` when there is at least one real override — the
+    // generator treats "absent" as "theme defaults".
+    ...(draft.design && Object.keys(draft.design).length > 0 ? { design: draft.design } : {}),
     header: draft.header,
     secoes: draft.secoes,
     footer: draft.footer,

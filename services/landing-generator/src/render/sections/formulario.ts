@@ -1,5 +1,5 @@
 import type { Secao } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../../models";
+import type { ResolvedDesign } from "../resolve-design";
 import { campo, jsExpr } from "../utils";
 import { SECTION_CLOSE, sectionOpen } from "./shared";
 
@@ -17,12 +17,12 @@ import { SECTION_CLOSE, sectionOpen } from "./shared";
  * left out here since the contract for this generator has no email/webhook
  * destination field.
  */
-export function renderFormulario(secao: Secao, theme: LandingPageTheme, footerEmail: string): string {
+export function renderFormulario(secao: Secao, design: ResolvedDesign, footerEmail: string): string {
   const titulo = campo(secao, "titulo", "Fale com a gente");
   const subtitulo = campo(secao, "subtitulo", "Preencha o formulário e retornaremos em breve.");
   const destino = footerEmail.trim() || "contato@seudominio.com.br";
 
-  return `${sectionOpen(secao, theme, "section-alt")}
+  return `${sectionOpen(secao, design, "section-alt")}
         <div className="container section-narrow">
           <h2 className="section-title">{${jsExpr(titulo)}}</h2>
           <p className="section-lead">{${jsExpr(subtitulo)}}</p>

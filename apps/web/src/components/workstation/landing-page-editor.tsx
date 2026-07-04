@@ -7,7 +7,9 @@ import {
   SECAO_BLOCKS,
   defaultCampos,
   defaultItem,
+  defaultVariante,
   novoNavItem,
+  type DesignConfig,
   type Secao,
   type HeaderConfig,
   type FooterConfig,
@@ -17,19 +19,31 @@ import {
   type CampoDef,
 } from "@danlimadev/contracts";
 import { LANDING_PAGE_MODELS, type LandingPageTheme } from "@danlimadev/landing-generator/models";
-import { updateLandingPageAction, uploadLandingPageLogoAction } from "@/lib/actions/landing-pages";
+import {
+  removerLandingPageImagemAction,
+  updateLandingPageAction,
+  uploadLandingPageImagemAction,
+  uploadLandingPageLogoAction,
+} from "@/lib/actions/landing-pages";
 import type { LandingPageDetail } from "@/lib/queries/landing-pages";
 import { secaoLabel } from "@/lib/landing-pages/secao-label";
 import { LandingPagePreview, type PreviewSelecao } from "@/components/workstation/lp-preview";
+import { LandingPageDesignPanel } from "@/components/workstation/landing-page-design-panel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-const CORES_DESTAQUE = ["#818cf8", "#34d399", "#f472b6", "#fbbf24", "#60a5fa", "#a78bfa"];
+type Painel = "design" | "header" | "secoes" | "footer" | "whatsapp";
 
-type Painel = "header" | "secoes" | "footer" | "whatsapp";
+const PAINEL_LABELS: Record<Painel, string> = {
+  design: "Design",
+  header: "Header",
+  secoes: "Seções",
+  footer: "Footer",
+  whatsapp: "WhatsApp",
+};
 
 function useDebouncedSave(save: () => void, delayMs = 700) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,6 +60,7 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
   );
 
   const [corAcento, setCorAcento] = useState(landingPage.corAcento);
+  const [design, setDesign] = useState<DesignConfig | null>(landingPage.design);
   const [header, setHeader] = useState<HeaderConfig>(landingPage.header);
   const [secoes, setSecoes] = useState<Secao[]>(landingPage.secoes);
   const [footer, setFooter] = useState<FooterConfig>(landingPage.footer);
@@ -61,13 +76,24 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
   const [gerado, setGerado] = useState<{ nome: string; blob: Blob } | null>(null);
 
   const persist = useDebouncedSave(() => {
-    void updateLandingPageAction(landingPage.id, { corAcento, header, secoes, footer, whatsapp });
+    void updateLandingPageAction(landingPage.id, { corAcento, design, header, secoes, footer, whatsapp });
   });
 
   useEffect(() => {
     persist();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [corAcento, header, secoes, footer, whatsapp]);
+  }, [corAcento, design, header, secoes, footer, whatsapp]);
+
+  /** Sets one Design-tab override; `undefined` clears it back to the theme default.
+   * An override map with zero keys is normalized to null (= DB null = pure theme). */
+  function setDesignField<K extends keyof DesignConfig>(key: K, value: DesignConfig[K] | undefined) {
+    setDesign((atual) => {
+      const next: DesignConfig = { ...(atual ?? {}) };
+      if (value === undefined) delete next[key];
+      else next[key] = value;
+      return Object.keys(next).length > 0 ? next : null;
+    });
+  }
 
   function selecionar(sel: PreviewSelecao) {
     setSelecionado(sel);
@@ -90,6 +116,7 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
       tipo,
       campos: defaultCampos(tipo),
       itens: SECAO_BLOCKS[tipo]?.itens ? [{ id: crypto.randomUUID(), campos: defaultItem(tipo) }] : undefined,
+      variante: defaultVariante(tipo),
     };
     setSecoes((atual) => [...atual, nova]);
     setSelecionado({ tipo: "secao", id: nova.id });
@@ -116,6 +143,10 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
 
   function atualizarCampo(secaoId: string, chave: string, valor: string) {
     setSecoes((atual) => atual.map((s) => (s.id === secaoId ? { ...s, campos: { ...s.campos, [chave]: valor } } : s)));
+  }
+
+  function atualizarVariante(secaoId: string, variante: string) {
+    setSecoes((atual) => atual.map((s) => (s.id === secaoId ? { ...s, variante } : s)));
   }
 
   function adicionarItem(secaoId: string) {
@@ -243,7 +274,7 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
         {/* LEFT: editor */}
         <div className="flex flex-col overflow-hidden rounded-[14px] border border-border bg-card">
           <div className="flex items-center gap-1 border-b border-border p-2">
-            {(["header", "secoes", "footer", "whatsapp"] as const).map((p) => (
+            {(["design", "header", "secoes", "footer", "whatsapp"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPainel(p)}
@@ -253,22 +284,30 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
                   color: painel === p ? "var(--primary)" : "var(--muted-foreground)",
                 }}
               >
-                {p === "secoes" ? "Seções" : p === "header" ? "Header" : p === "footer" ? "Footer" : "WhatsApp"}
+                {PAINEL_LABELS[p]}
               </button>
             ))}
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
+            {painel === "design" && (
+              <LandingPageDesignPanel
+                tema={tema}
+                design={design}
+                corAcento={corAcento}
+                onCorChange={setCorAcento}
+                onDesignField={setDesignField}
+              />
+            )}
+
             {painel === "header" && (
               <HeaderPanel
                 header={header}
                 secoes={secoes}
-                corAcento={corAcento}
                 uploadingLogo={uploadingLogo}
                 onToggleLogo={(v) => setHeader((h) => ({ ...h, mostrarLogo: v }))}
                 onToggleTitulo={(v) => setHeader((h) => ({ ...h, mostrarTitulo: v }))}
                 onTituloChange={(v) => setHeader((h) => ({ ...h, titulo: v }))}
-                onCorChange={setCorAcento}
                 onTrocarLogo={trocarLogo}
                 onAddNav={adicionarNavItem}
                 onUpdateNav={atualizarNavItem}
@@ -319,8 +358,10 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
 
                 {secaoSelecionada && (
                   <SecaoEditor
+                    lpId={landingPage.id}
                     secao={secaoSelecionada}
                     onCampoChange={(chave, valor) => atualizarCampo(secaoSelecionada.id, chave, valor)}
+                    onVarianteChange={(variante) => atualizarVariante(secaoSelecionada.id, variante)}
                     onItemChange={(itemId, chave, valor) => atualizarItem(secaoSelecionada.id, itemId, chave, valor)}
                     onAddItem={() => adicionarItem(secaoSelecionada.id)}
                     onRemoveItem={(itemId) => removerItem(secaoSelecionada.id, itemId)}
@@ -371,6 +412,7 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
           <div className="flex-1 overflow-y-auto">
             <LandingPagePreview
               tema={tema}
+              design={design}
               corAcento={corAcento}
               header={header}
               secoes={secoes}
@@ -395,12 +437,10 @@ export function LandingPageEditor({ landingPage }: { landingPage: LandingPageDet
 function HeaderPanel({
   header,
   secoes,
-  corAcento,
   uploadingLogo,
   onToggleLogo,
   onToggleTitulo,
   onTituloChange,
-  onCorChange,
   onTrocarLogo,
   onAddNav,
   onUpdateNav,
@@ -408,12 +448,10 @@ function HeaderPanel({
 }: {
   header: HeaderConfig;
   secoes: Secao[];
-  corAcento: string;
   uploadingLogo: boolean;
   onToggleLogo: (v: boolean) => void;
   onToggleTitulo: (v: boolean) => void;
   onTituloChange: (v: string) => void;
-  onCorChange: (v: string) => void;
   onTrocarLogo: (file: File) => void;
   onAddNav: () => void;
   onUpdateNav: (id: string, patch: Partial<NavItem>) => void;
@@ -476,22 +514,6 @@ function HeaderPanel({
         </Field>
       )}
 
-      <Field label="Cor de destaque">
-        <div className="flex gap-2">
-          {CORES_DESTAQUE.map((cor) => (
-            <button
-              key={cor}
-              onClick={() => onCorChange(cor)}
-              className="size-[30px] rounded-[8px]"
-              style={{
-                background: cor,
-                boxShadow: corAcento === cor ? `0 0 0 2px var(--card), 0 0 0 4px ${cor}` : undefined,
-              }}
-            />
-          ))}
-        </div>
-      </Field>
-
       <div className="flex flex-col gap-2 border-t border-border pt-3.5">
         <div className="text-[12.5px] font-semibold">Navegação</div>
         {header.navItems.map((item) => (
@@ -533,14 +555,18 @@ function HeaderPanel({
 // ---------------------------------------------------------------------------
 
 function SecaoEditor({
+  lpId,
   secao,
   onCampoChange,
+  onVarianteChange,
   onItemChange,
   onAddItem,
   onRemoveItem,
 }: {
+  lpId: string;
   secao: Secao;
   onCampoChange: (chave: string, valor: string) => void;
+  onVarianteChange: (variante: string) => void;
   onItemChange: (itemId: string, chave: string, valor: string) => void;
   onAddItem: () => void;
   onRemoveItem: (itemId: string) => void;
@@ -548,13 +574,44 @@ function SecaoEditor({
   const def = SECAO_BLOCKS[secao.tipo];
   if (!def) return null;
   const itens = secao.itens ?? [];
+  const varianteAtiva = secao.variante ?? defaultVariante(secao.tipo);
 
   return (
     <div className="flex flex-col gap-3.5 border-t border-border pt-3.5">
       <div className="text-[13px] font-semibold">Editando: {def.nome}</div>
 
+      {def.variantes && def.variantes.length > 0 && (
+        <Field label="Layout">
+          <div className="flex flex-wrap gap-1.5">
+            {def.variantes.map((v) => {
+              const ativa = varianteAtiva === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => onVarianteChange(v.id)}
+                  className="rounded-full border px-2.5 py-1 text-[11px] font-medium"
+                  style={{
+                    borderColor: ativa ? "var(--primary)" : "var(--border)",
+                    background: ativa ? "rgba(129,140,248,0.12)" : "transparent",
+                    color: ativa ? "var(--primary)" : "var(--muted-foreground)",
+                  }}
+                >
+                  {v.nome}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+      )}
+
       {def.campos.map((campoDef) => (
-        <CampoField key={campoDef.key} def={campoDef} valor={secao.campos[campoDef.key] ?? ""} onChange={(v) => onCampoChange(campoDef.key, v)} />
+        <CampoField
+          key={campoDef.key}
+          lpId={lpId}
+          def={campoDef}
+          valor={secao.campos[campoDef.key] ?? ""}
+          onChange={(v) => onCampoChange(campoDef.key, v)}
+        />
       ))}
 
       {def.itens && (
@@ -577,6 +634,7 @@ function SecaoEditor({
               {def.itens!.campos.map((campoDef) => (
                 <CampoField
                   key={campoDef.key}
+                  lpId={lpId}
                   def={campoDef}
                   valor={item.campos[campoDef.key] ?? ""}
                   onChange={(v) => onItemChange(item.id, campoDef.key, v)}
@@ -599,7 +657,17 @@ function SecaoEditor({
   );
 }
 
-function CampoField({ def, valor, onChange }: { def: CampoDef; valor: string; onChange: (v: string) => void }) {
+function CampoField({
+  lpId,
+  def,
+  valor,
+  onChange,
+}: {
+  lpId: string;
+  def: CampoDef;
+  valor: string;
+  onChange: (v: string) => void;
+}) {
   if (def.tipo === "booleano") {
     return (
       <label className="flex items-center gap-2 text-[12.5px] text-foreground">
@@ -613,6 +681,9 @@ function CampoField({ def, valor, onChange }: { def: CampoDef; valor: string; on
       </label>
     );
   }
+  if (def.tipo === "imagem") {
+    return <ImagemField lpId={lpId} def={def} valor={valor} onChange={onChange} />;
+  }
   return (
     <Field label={def.label}>
       {def.tipo === "textarea" ? (
@@ -620,6 +691,86 @@ function CampoField({ def, valor, onChange }: { def: CampoDef; valor: string; on
       ) : (
         <Input value={valor} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder} />
       )}
+    </Field>
+  );
+}
+
+/**
+ * "imagem" field: upload real (Supabase Storage, trocando/limpando o arquivo
+ * anterior — mesmo padrão do logo) + thumbnail + remover. A URL resultante
+ * vive em `secao.campos[key]` e é persistida pelo autosave genérico.
+ */
+function ImagemField({
+  lpId,
+  def,
+  valor,
+  onChange,
+}: {
+  lpId: string;
+  def: CampoDef;
+  valor: string;
+  onChange: (v: string) => void;
+}) {
+  const [enviando, setEnviando] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  async function enviar(file: File) {
+    setEnviando(true);
+    try {
+      const url = await uploadLandingPageImagemAction(lpId, file, valor || null);
+      onChange(url);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function remover() {
+    const anterior = valor;
+    onChange("");
+    if (anterior) void removerLandingPageImagemAction(anterior);
+  }
+
+  return (
+    <Field label={def.label}>
+      <div className="flex items-center gap-2">
+        {valor ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={valor} alt="" className="size-9 shrink-0 rounded-[8px] border border-border object-cover" />
+        ) : (
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] border border-dashed border-border text-muted-foreground">
+            <ImageIcon size={14} />
+          </span>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={enviando}
+          onClick={() => inputRef.current?.click()}
+          className="flex-1 justify-center gap-1.5"
+        >
+          {enviando ? "Enviando..." : valor ? "Trocar imagem" : "Enviar imagem"}
+        </Button>
+        {valor && (
+          <button
+            onClick={() => void remover()}
+            className="p-1 text-muted-foreground hover:text-destructive"
+            aria-label="Remover imagem"
+          >
+            <X size={14} />
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void enviar(file);
+            e.target.value = "";
+          }}
+        />
+      </div>
     </Field>
   );
 }

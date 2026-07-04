@@ -1,5 +1,5 @@
 import type { GerarLandingPageInput } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../models";
+import type { ResolvedDesign } from "./resolve-design";
 import { jsExpr } from "./utils";
 
 type HeaderConfig = GerarLandingPageInput["header"];
@@ -44,8 +44,8 @@ function renderNav(header: HeaderConfig): string {
  * which pieces of `header` to include). `[data-site-header]` is the hook the
  * scroll script (`buildHeaderScrollScript`) toggles `.is-scrolled` on.
  */
-export function renderHeader(header: HeaderConfig, theme: LandingPageTheme, corAcento: string): string {
-  const logo = renderLogo(header, corAcento);
+export function renderHeader(header: HeaderConfig, design: ResolvedDesign): string {
+  const logo = renderLogo(header, design.corAcento);
   const titulo = renderTitulo(header);
   const nav = renderNav(header);
   const brand =
@@ -55,7 +55,7 @@ export function renderHeader(header: HeaderConfig, theme: LandingPageTheme, corA
         </div>`
       : "";
 
-  return `<header className="site-header site-header--${theme.estiloHeader}" data-site-header>
+  return `<header className="site-header site-header--${design.estiloHeader}" data-site-header>
         <div className="container">
           ${brand}
           ${nav}

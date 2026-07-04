@@ -3,5 +3,15 @@ export { HeaderPreview } from "./HeaderPreview";
 export { FooterPreview } from "./FooterPreview";
 export { SecaoPreview } from "./SecaoPreview";
 export { WhatsappButtonPreview } from "./WhatsappButtonPreview";
-export { temaVars, lpRadius, botaoRadius, type LpThemeVars } from "./theme-style";
+export { LpBackgroundDecor } from "./LpBackgroundDecor";
+export {
+  temaVars,
+  lpRadius,
+  botaoRadius,
+  cardSurface,
+  resolveDesign,
+  LP_PREVIEW_CSS,
+  type LpThemeVars,
+  type ResolvedDesign,
+} from "./theme-style";
 export { useGoogleFonts } from "./use-google-fonts";

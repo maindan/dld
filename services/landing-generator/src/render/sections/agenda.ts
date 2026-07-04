@@ -1,10 +1,10 @@
 import type { Secao } from "@danlimadev/contracts";
-import type { LandingPageTheme } from "../../models";
+import type { ResolvedDesign } from "../resolve-design";
 import { campo, itemCampo, jsExpr } from "../utils";
 import { sectionHeading, SECTION_CLOSE, sectionOpen } from "./shared";
 
 /** Chronological list — horario badge + titulo + descricao, for event schedules. */
-export function renderAgenda(secao: Secao, theme: LandingPageTheme): string {
+export function renderAgenda(secao: Secao, design: ResolvedDesign): string {
   const titulo = campo(secao, "titulo", "Programação");
   const itens = secao.itens ?? [];
 
@@ -23,7 +23,7 @@ export function renderAgenda(secao: Secao, theme: LandingPageTheme): string {
     })
     .join("\n          ");
 
-  return `${sectionOpen(secao, theme, "section-alt")}
+  return `${sectionOpen(secao, design, "section-alt")}
         <div className="container">
           ${sectionHeading(titulo)}
           <div className="agenda-list">
