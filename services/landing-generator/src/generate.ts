@@ -1,15 +1,20 @@
 import { readdir, readFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
 import archiver from "archiver";
 import { gerarLandingPageSchema, type GerarLandingPageInput, type GerarLandingPageResult } from "@danlimadev/contracts";
 import { renderProject } from "./render/page";
 
-// `dirname(fileURLToPath(...))` instead of `fileURLToPath(new URL(".", import.meta.url))`:
-// the latter constructs an intermediate URL object that Turbopack's module wrapping of
-// `import.meta.url` doesn't reliably round-trip (throws "Received an instance of URL" at
-// runtime under `next dev`), even though plain Node ESM handles it fine.
-const SKELETON_DIR = join(dirname(fileURLToPath(import.meta.url)), "skeleton");
+// Deliberately NOT import.meta.url / import.meta.dirname: Turbopack's bundling of
+// the consuming Next.js Route Handler for production (Vercel) doesn't reliably
+// preserve either — observed both "Invalid URL" (ERR_INVALID_URL, mangled
+// import.meta.url passed to fileURLToPath) and import.meta.dirname coming out
+// `undefined` at module evaluation. process.cwd() is a live Node call the
+// bundler can't rewrite or inline away. Pairs with `outputFileTracingRoot` +
+// `outputFileTracingIncludes` in apps/web/next.config.ts, which point Next's
+// file tracer at this directory and guarantee the monorepo-root-relative path
+// resolves the same way in dev, in `next build`, and in the deployed function
+// (all three run with cwd = apps/web, the directory containing next.config.ts).
+const SKELETON_DIR = join(process.cwd(), "../../services/landing-generator/src/skeleton");
 
 export interface GenerateLandingPageOutput {
   buffer: Buffer;
@@ -27,12 +32,25 @@ async function* walk(dir: string): AsyncGenerator<string> {
   }
 }
 
-/** `skeleton/gitignore` -> `.gitignore` in the zip (a literal `.gitignore` file living inside
- * this repo's `src/skeleton/` would apply its own ignore rules to that subtree, which is
- * confusing for a file that's actually just zip payload — so it's kept dotless on disk and
- * renamed only at archive time). Every other skeleton file's on-disk name is its zip name. */
+/**
+ * On-disk skeleton filename -> zip entry name, for the 2 cases where they must differ:
+ *
+ *  - `gitignore` -> `.gitignore`: a literal `.gitignore` living inside this repo's
+ *    `src/skeleton/` would apply its own ignore rules to that subtree, confusing for a
+ *    file that's actually just zip payload — so it's kept dotless on disk.
+ *  - `*.d.ts.template` -> `*.d.ts`: Next.js's serverless file tracer (collect-build-traces.js)
+ *    unconditionally ignores every `**​/*.d.ts` when bundling the Vercel function for the
+ *    `/api/landing-pages/[id]/gerar` route (see next.config.ts's outputFileTracingIncludes) —
+ *    it assumes .d.ts files are never needed at runtime, which is true for real TypeScript
+ *    but not here, where they're just static template bytes read via readFile(). Renamed on
+ *    disk to dodge that filter, renamed back only at archive time.
+ *
+ * Every other skeleton file's on-disk name is its zip name.
+ */
 function skeletonEntryName(relativePath: string): string {
-  return relativePath === "gitignore" ? ".gitignore" : relativePath;
+  if (relativePath === "gitignore") return ".gitignore";
+  if (relativePath.endsWith(".d.ts.template")) return relativePath.slice(0, -".template".length);
+  return relativePath;
 }
 
 /**
