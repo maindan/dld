@@ -6,6 +6,18 @@ const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
+// postgres-js parses this as a URL internally and throws a bare, redacted
+// "TypeError: Invalid URL" with no indication of *which* env var is the
+// culprit — validate it ourselves first so a copy-paste mistake (stray
+// quotes, a truncated paste, a missing "postgresql://" scheme) surfaces as
+// an actionable error instead of a mystery crash during module load.
+try {
+  new URL(connectionString);
+} catch {
+  throw new Error(
+    'DATABASE_URL is not a valid connection URL (must start with "postgresql://" or "postgres://" — check for stray quotes, whitespace, or a truncated paste in wherever this env var is set)',
+  );
+}
 
 /**
  * Next.js dev mode re-evaluates this module on every Fast Refresh, which would
