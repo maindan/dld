@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { requestPasswordResetAction } from "@/lib/actions/auth";
 
 type Mode = "login" | "rec" | "sent";
 
@@ -34,16 +35,14 @@ export default function LoginPage() {
     e.preventDefault();
     setErro(null);
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/atualizar-senha`,
-    });
-    setLoading(false);
-    if (error) {
+    try {
+      await requestPasswordResetAction(email);
+      setMode("sent");
+    } catch {
       setErro("Não foi possível enviar o link agora.");
-      return;
+    } finally {
+      setLoading(false);
     }
-    setMode("sent");
   }
 
   return (
