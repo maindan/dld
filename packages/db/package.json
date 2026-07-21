@@ -12,6 +12,7 @@
     "migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
     "seed:admin": "tsx --env-file=.env --env-file=../../apps/web/.env.local src/scripts/seed-admin.ts",
+    "reset:password": "tsx --env-file=.env --env-file=../../apps/web/.env.local src/scripts/reset-password.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
